@@ -110,7 +110,14 @@ impl Account {
             return Err("Account is locked".into());
         }
         
-        self.total += transaction_entity.amount.unwrap_or(Decimal::new(0, 0));
+        let amount = transaction_entity.amount.unwrap_or(Decimal::new(0, 0));
+
+
+        if amount.is_sign_negative() {
+            return Err("Deposit amount is negative".into());
+        }
+
+        self.total += amount;
 
         // If I correctly understand the task, the only deposit transactions could be disputed
         // so we save only deposit transactions
@@ -151,6 +158,11 @@ impl Account {
         }
 
         let amount = disputed_tx.amount.unwrap_or(Decimal::new(0, 0));
+        
+        if amount.is_sign_negative() {
+            return Err("Transaction amount is negative".into());
+        }
+
         if amount > available {
             return Err("Transaction amount is greater than available funds".into());
         }
