@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use futures::lock::Mutex;
+use tokio::sync::RwLock;
 use rust_decimal::Decimal;
 use serde::Serialize;
 use tokio::sync::mpsc;
@@ -210,12 +210,12 @@ pub enum AccountWorkerMessage {
 }
 
 pub struct AccountWorker {
-    pub account: Arc<Mutex<Account>>,
+    pub account: Arc<RwLock<Account>>,
     receiver: mpsc::Receiver<AccountWorkerMessage>,
 }
 
 impl AccountWorker {
-    pub fn new(receiver: mpsc::Receiver<AccountWorkerMessage>, account: Arc<Mutex<Account>>) -> Self {
+    pub fn new(receiver: mpsc::Receiver<AccountWorkerMessage>, account: Arc<RwLock<Account>>) -> Self {
         Self {
             account: account,
             receiver,
@@ -226,7 +226,7 @@ impl AccountWorker {
         while let Some(msg) = self.receiver.recv().await {
             match msg {
                 AccountWorkerMessage::Transaction(tx) => {
-                    let mut account = self.account.lock().await;
+                    let mut account = self.account.write().await;
 
                     if let Err(e) = account.process_transaction(tx) {
                         eprintln!("Error processing transaction: {}", e);

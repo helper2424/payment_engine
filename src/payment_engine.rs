@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use futures::lock::Mutex;
 use tokio::sync::mpsc;
+use tokio::sync::RwLock;
 use crate::transaction::TransactionEntity;
 use crate::account::{Account, AccountEntity, AccountWorker, AccountWorkerMessage};
 use std::error::Error;
@@ -10,7 +10,7 @@ const WORKER_CHANNEL_SIZE: usize = 100;
 
 pub struct PaymentEngine {
     account_senders: HashMap<u16, mpsc::Sender<AccountWorkerMessage>>,
-    accounts: HashMap<u16, Arc<Mutex<Account>>>,
+    accounts: HashMap<u16, Arc<RwLock<Account>>>,
     spawned_workers: HashMap<u16, tokio::task::JoinHandle<()>>,
 }
 
@@ -29,7 +29,7 @@ impl PaymentEngine {
         }
 
         let (tx, rx) = mpsc::channel(WORKER_CHANNEL_SIZE);
-        let account_arc = Arc::new(Mutex::new(Account::new(client_id)));
+        let account_arc = Arc::new(RwLock::new(Account::new(client_id)));
         let worker = AccountWorker::new( rx, account_arc.clone());
         
         let handler = tokio::spawn(async move {
@@ -46,7 +46,7 @@ impl PaymentEngine {
         let mut account_entities = Vec::new();
 
         for (_, account) in self.accounts.iter() {
-            let account_guard = account.lock().await;
+            let account_guard = account.read().await;
             let account_entity = AccountEntity::from(&*account_guard);
             account_entities.push(account_entity);
         }
