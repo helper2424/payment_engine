@@ -8,7 +8,6 @@ use std::error::Error;
 
 const WORKER_CHANNEL_SIZE: usize = 100;
 
-#[derive(Default)]
 pub struct PaymentEngine {
     account_senders: HashMap<u16, mpsc::Sender<AccountWorkerMessage>>,
     accounts: HashMap<u16, Arc<Mutex<Account>>>,
@@ -17,7 +16,11 @@ pub struct PaymentEngine {
 
 impl PaymentEngine {
     pub fn new() -> Self {
-        Self::default()
+        PaymentEngine {
+            account_senders: HashMap::new(),
+            accounts: HashMap::new(),
+            spawned_workers: HashMap::new(),
+        }
     }
 
     async fn add_account_if_not_exists(&mut self, client_id: u16) -> mpsc::Sender<AccountWorkerMessage> {
